@@ -82,11 +82,6 @@
     </div>
 
     <script>
-        // 設置當前日期
-        const today = new Date();
-        document.getElementById('currentDate').textContent = 
-            `資料更新時間：${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
-
         // 讀取交易資料
         fetch('http://localhost:8080/data')
             .then(response => {
@@ -98,6 +93,13 @@
             .then(trades => {
                 const container = document.getElementById('tradeContainer');
                 container.innerHTML = ''; // 清空容器
+
+                // 設置資料更新時間（使用第一筆交易的申報日期）
+                if (trades.length > 0 && trades[0].filingDate) {
+                    const filingDate = new Date(trades[0].filingDate);
+                    document.getElementById('currentDate').textContent = 
+                        `資料更新時間：${filingDate.getFullYear()}年${filingDate.getMonth() + 1}月${filingDate.getDate()}日`;
+                }
                 
                 // 過濾有效的交易資料
                 const validTrades = trades.filter(trade => 
@@ -115,13 +117,34 @@
                     // 計算交易金額
                     const transactionValue = trade.price * trade.securitiesTransacted;
                     
+                    // 根據交易類型顯示中文說明
+                    const getTransactionTypeDesc = (type) => {
+                        const types = {
+                            'P-Purchase': '購買',
+                            'S-Sale': '出售',
+                            'A-Award': '獎勵配股',
+                            'F-InKind': '實物給付',
+                            'M-Exercise': '執行選擇權',
+                            'G-Gift': '贈與'
+                        };
+                        return types[type] || type;
+                    };
+
+                    // 轉換處置方式為中文
+                    const getDispositionDesc = (disp) => {
+                        return disp === 'A' ? '取得' : disp === 'D' ? '處分' : disp;
+                    };
+
                     card.innerHTML = `
                         <h3>${trade.symbol}</h3>
                         <div class="trade-info">
-                            <p><strong>公司名稱：</strong>${trade.securityName || '未提供'}</p>
+                            <p><strong>申報日期：</strong>${new Date(trade.filingDate).toLocaleDateString('zh-TW')}</p>
+                            <p><strong>交易日期：</strong>${new Date(trade.transactionDate).toLocaleDateString('zh-TW')}</p>
+                            <p><strong>交易型態：</strong><span class="${isPositive ? 'positive' : 'negative'}">${getTransactionTypeDesc(trade.transactionType)}</span></p>
+                            <p><strong>處置方式：</strong><span class="${isPositive ? 'positive' : 'negative'}">${getDispositionDesc(trade.acquisitionOrDisposition)}</span></p>
+                            <p><strong>證券種類：</strong>${trade.securityName || '未提供'}</p>
                             <p><strong>內部人姓名：</strong>${trade.reportingName}</p>
                             <p><strong>職位：</strong>${trade.typeOfOwner || '未提供'}</p>
-                            <p><strong>交易日期：</strong>${new Date(trade.transactionDate).toLocaleDateString('zh-TW')}</p>
                             <p><strong>交易價格：</strong>$${trade.price ? parseFloat(trade.price).toFixed(2) : '0.00'}</p>
                             <p><strong>交易股數：</strong><span class="${isPositive ? 'positive' : 'negative'}">
                                 ${isPositive ? '+' : '-'}${trade.securitiesTransacted.toLocaleString()}

@@ -5,7 +5,6 @@ API_KEY = "RUN8puBkDXJDkQxg8HPtXbspGEiVxNic"
 url = "https://financialmodelingprep.com/stable/insider-trading/latest"
 params = {
     "page": 0,
-    "limit": 50,
     "apikey": API_KEY
 }
 
