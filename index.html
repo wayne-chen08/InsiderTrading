@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>內部人交易資料</title>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .trade-grid {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .trade-card {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .trade-card h3 {
+            color: #4CAF50;
+            margin-top: 0;
+        }
+
+        .trade-info {
+            margin: 10px 0;
+        }
+
+        .positive {
+            color: #4CAF50;
+        }
+
+        .negative {
+            color: #f44336;
+        }
+
+        .date-info {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #888;
+        }
+
+        .stats {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #2d2d2d;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>內部人交易資料</h1>
+        <div class="date-info">
+            <p id="currentDate"></p>
+        </div>
+        <div class="trade-grid" id="tradeContainer">
+            <!-- 交易資料將在這裡動態載入 -->
+        </div>
+    </div>
+
+    <script>
+        // 設置當前日期
+        const today = new Date();
+        document.getElementById('currentDate').textContent = 
+            `資料更新時間：${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+
+        // 讀取交易資料
+        fetch('http://localhost:8080/data')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('網路回應不正確');
+                }
+                return response.json();
+            })
+            .then(trades => {
+                const container = document.getElementById('tradeContainer');
+                container.innerHTML = ''; // 清空容器
+                
+                // 過濾有效的交易資料
+                const validTrades = trades.filter(trade => 
+                    trade.symbol && trade.reportingName && trade.transactionDate
+                );
+
+                // 顯示交易資料
+                validTrades.forEach(trade => {
+                    const card = document.createElement('div');
+                    card.className = 'trade-card';
+                    
+                    // 判斷是買入還是賣出
+                    const isPositive = trade.acquisitionOrDisposition === 'A';
+                    
+                    // 計算交易金額
+                    const transactionValue = trade.price * trade.securitiesTransacted;
+                    
+                    card.innerHTML = `
+                        <h3>${trade.symbol}</h3>
+                        <div class="trade-info">
+                            <p><strong>公司名稱：</strong>${trade.securityName || '未提供'}</p>
+                            <p><strong>內部人姓名：</strong>${trade.reportingName}</p>
+                            <p><strong>職位：</strong>${trade.typeOfOwner || '未提供'}</p>
+                            <p><strong>交易日期：</strong>${new Date(trade.transactionDate).toLocaleDateString('zh-TW')}</p>
+                            <p><strong>交易價格：</strong>$${trade.price ? parseFloat(trade.price).toFixed(2) : '0.00'}</p>
+                            <p><strong>交易股數：</strong><span class="${isPositive ? 'positive' : 'negative'}">
+                                ${isPositive ? '+' : '-'}${trade.securitiesTransacted.toLocaleString()}
+                            </span></p>
+                            <p><strong>交易金額：</strong><span class="${isPositive ? 'positive' : 'negative'}">
+                                $${Math.abs(transactionValue).toLocaleString()}
+                            </span></p>
+                        </div>
+                    `;
+                    
+                    container.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('tradeContainer').innerHTML = `
+                    <div style="color: #f44336; text-align: center; padding: 20px;">
+                        <h2>載入資料時發生錯誤</h2>
+                        <p>請確認伺服器是否正在運行</p>
+                    </div>
+                `;
+            });
+    </script>
+</body>
+</html>
