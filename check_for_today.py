@@ -1,7 +1,10 @@
 import requests
 import json
+import os
+from dotenv import load_dotenv
 
-API_KEY = "RUN8puBkDXJDkQxg8HPtXbspGEiVxNic"
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 url = "https://financialmodelingprep.com/stable/insider-trading/latest"
 params = {
     "page": 0,
